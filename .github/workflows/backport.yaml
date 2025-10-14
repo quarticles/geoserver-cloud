@@ -1,9 +1,13 @@
-name: ♻ Backport
+name: ♻ Backport (Disabled)
+# DISABLED for fork - requires GH_TOKEN_BOT secret
 on:
-  pull_request_target:
-    types:
-      - closed
-      - labeled
+  push:
+    branches:
+      - disabled-backport
+  # pull_request_target:
+  #   types:
+  #     - closed
+  #     - labeled
 
 permissions:
   contents: read

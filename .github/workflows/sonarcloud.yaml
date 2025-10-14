@@ -1,22 +1,27 @@
 # SonarCloud analysis for main branch pushes and PRs from the same repository
+# DISABLED for fork - requires SONAR_TOKEN secret and organization setup
+# To enable: set up your own SonarCloud project and update the configuration
 
-name: SonarCloud QA
+name: SonarCloud QA (Disabled)
 on:
   push:
     branches:
-      - main
-      - "release/**"
-    paths:
-      - ".github/workflows/sonarcloud.yaml"
-      - ".github/workflows/sonarcloud-fork-pr.yaml"
-      - "pom.xml"
-      - "src/**"
-      - "Makefile"
-      - "config"
-      - "acceptance_tests/**"
-      - "ci/**"
-  pull_request:
-    types: [opened, synchronize, reopened]
+      - disabled-sonarcloud
+  # push:
+  #   branches:
+  #     - main
+  #     - "release/**"
+  #   paths:
+  #     - ".github/workflows/sonarcloud.yaml"
+  #     - ".github/workflows/sonarcloud-fork-pr.yaml"
+  #     - "pom.xml"
+  #     - "src/**"
+  #     - "Makefile"
+  #     - "config"
+  #     - "acceptance_tests/**"
+  #     - "ci/**"
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
 
 # cancel in-progress jobs or runs for this workflow for the same pr or branch
 concurrency:
