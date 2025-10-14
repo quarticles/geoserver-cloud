@@ -23,7 +23,7 @@ concurrency:
 jobs:
   test:
     name: Build and Test Pull Request
-    if: github.repository == 'geoserver/geoserver-cloud'
+    if: github.repository == 'quarticles/geoserver-cloud'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -50,7 +50,7 @@ jobs:
 
   acceptance:
     name: Acceptance
-    if: github.repository == 'geoserver/geoserver-cloud'
+    if: github.repository == 'quarticles/geoserver-cloud'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     #needs: test

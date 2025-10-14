@@ -1,18 +1,22 @@
 # SonarCloud analysis specifically for pull requests from forked repositories
+# DISABLED for fork - requires SONAR_TOKEN secret and organization setup
 
-name: SonarCloud QA (Fork PRs)
+name: SonarCloud QA Fork PRs (Disabled)
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
-    paths:
-      - ".github/workflows/sonarcloud.yaml"
-      - ".github/workflows/sonarcloud-fork-pr.yaml"
-      - "pom.xml"
-      - "src/**"
-      - "Makefile"
-      - "config"
-      - "acceptance_tests/**"
-      - "ci/**"
+  push:
+    branches:
+      - disabled-sonarcloud
+  # pull_request_target:
+  #   types: [opened, synchronize, reopened]
+  #   paths:
+  #     - ".github/workflows/sonarcloud.yaml"
+  #     - ".github/workflows/sonarcloud-fork-pr.yaml"
+  #     - "pom.xml"
+  #     - "src/**"
+  #     - "Makefile"
+  #     - "config"
+  #     - "acceptance_tests/**"
+  #     - "ci/**"
 
 # cancel in-progress jobs or runs for this workflow for the same pr
 concurrency:

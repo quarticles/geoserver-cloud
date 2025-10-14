@@ -23,16 +23,17 @@ concurrency:
 
 jobs:
   base-images:
-    if: github.repository == 'geoserver/geoserver-cloud'
+    if: github.repository == 'quarticles/geoserver-cloud'
     name: Build and Push Base Images
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-    - name: Login to Docker Hub
+    - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -61,7 +62,7 @@ jobs:
 
     - name: Build and push base images
       run: |
-        REPACKAGE=false make build-base-images-multiplatform
+        REPOSITORY=ghcr.io/quarticles REPACKAGE=false make build-base-images-multiplatform
 
     - name: Clean up Maven project artifacts
       run: |
@@ -70,16 +71,17 @@ jobs:
 
   infrastructure-images:
     needs: base-images
-    if: github.repository == 'geoserver/geoserver-cloud'
+    if: github.repository == 'quarticles/geoserver-cloud'
     name: Build infrastructure images
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-    - name: Login to Docker Hub
+    - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -108,7 +110,7 @@ jobs:
 
     - name: Build and push infrastructure images
       run: |
-        REPACKAGE=false make build-image-infrastructure-multiplatform
+        REPOSITORY=ghcr.io/quarticles REPACKAGE=false make build-image-infrastructure-multiplatform
 
     - name: Clean up Maven project artifacts
       run: |
@@ -117,7 +119,7 @@ jobs:
 
   geoserver-images:
     needs: base-images
-    if: github.repository == 'geoserver/geoserver-cloud'
+    if: github.repository == 'quarticles/geoserver-cloud'
     name: Build GeoServer image
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -127,11 +129,12 @@ jobs:
         # matches app folder names in src/apps/geoserver/* and docker compose service names
         app: [ 'wms', 'wfs', 'wcs', 'wps', 'gwc', 'restconfig', 'webui' ]
     steps:
-    - name: Login to Docker Hub
+    - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -160,54 +163,56 @@ jobs:
 
     - name: Build and push GeoServer images
       run: |
-        REPACKAGE=false make build-image-geoserver-multiplatform ${{ matrix.app }}
+        REPOSITORY=ghcr.io/quarticles REPACKAGE=false make build-image-geoserver-multiplatform ${{ matrix.app }}
 
     - name: Clean up Maven project artifacts
       run: |
         rm -rf ~/.m2/repository/org/geoserver
         find ~/.m2/repository -name "*SNAPSHOT*" -type d -exec rm -rf {} + 2>/dev/null || true
 
-  sign-images:
-    needs: [base-images, infrastructure-images, geoserver-images]
-    if: github.repository == 'geoserver/geoserver-cloud'
-    name: Sign and Verify Images
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '21'
-
-    - name: Pull all images
-      run: |
-        make pull-images
-
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@v3.5.0
-
-    - name: Sign images
-      env:
-        COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
-        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-      run: |
-        make sign-image
-
-    - name: Verify image signatures
-      env:
-        COSIGN_PUB_KEY: ${{ secrets.COSIGN_PUB_KEY }}
-        COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-      run: |
-        make verify-image
+  # Image signing disabled for fork - uncomment if needed
+  # sign-images:
+  #   needs: [base-images, infrastructure-images, geoserver-images]
+  #   if: github.repository == 'quarticles/geoserver-cloud'
+  #   name: Sign and Verify Images
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 30
+  #   steps:
+  #   - name: Login to GitHub Container Registry
+  #     uses: docker/login-action@v3
+  #     with:
+  #       registry: ghcr.io
+  #       username: ${{ github.actor }}
+  #       password: ${{ secrets.GITHUB_TOKEN }}
+  #
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
+  #     with:
+  #       submodules: recursive
+  #
+  #   - name: Setup Java
+  #     uses: actions/setup-java@v4
+  #     with:
+  #       distribution: 'temurin'
+  #       java-version: '21'
+  #
+  #   - name: Pull all images
+  #     run: |
+  #       REPOSITORY=ghcr.io/quarticles make pull-images
+  #
+  #   - name: Install Cosign
+  #     uses: sigstore/cosign-installer@v3.5.0
+  #
+  #   - name: Sign images
+  #     env:
+  #       COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+  #       COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+  #     run: |
+  #       REPOSITORY=ghcr.io/quarticles make sign-image
+  #
+  #   - name: Verify image signatures
+  #     env:
+  #       COSIGN_PUB_KEY: ${{ secrets.COSIGN_PUB_KEY }}
+  #       COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+  #     run: |
+  #       REPOSITORY=ghcr.io/quarticles make verify-image
