@@ -21,14 +21,16 @@ COPY --from=builder spring-boot-loader/ ./
 RUN true
 COPY --from=builder application/ ./
 
-# Execute the CDS training run
-RUN mkdir /tmp/tmpdatadir
-RUN GEOSERVER_DATA_DIR=/tmp/tmpdatadir java \
--XX:ArchiveClassesAtExit=application.jsa \
--Dspring.context.exit=onRefreshed \
--Dspring.profiles.active=standalone,datadir,offline \
--Dserver.port=0 -Dmanagement.server.port=0 \
-org.springframework.boot.loader.JarLauncher
+# Execute the CDS training run (best-effort - failures won't break the build)
+RUN mkdir /tmp/tmpdatadir && \
+    GEOSERVER_DATA_DIR=/tmp/tmpdatadir java \
+    -XX:ArchiveClassesAtExit=application.jsa \
+    -Dspring.context.exit=onRefreshed \
+    -Dspring.profiles.active=standalone,datadir,offline \
+    -Dserver.port=0 -Dmanagement.server.port=0 \
+    org.springframework.boot.loader.JarLauncher || \
+    echo "CDS training run failed - continuing without CDS optimization"
 RUN rm -rf /tmp/*
 
-ENV JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} -XX:SharedArchiveFile=application.jsa"
+# Only use CDS archive if it was successfully created
+ENV JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} $(test -f application.jsa && echo '-XX:SharedArchiveFile=application.jsa' || echo '')"
