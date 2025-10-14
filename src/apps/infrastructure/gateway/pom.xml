@@ -260,4 +260,75 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>native</id>
+      <properties>
+        <!-- Native image build configuration -->
+        <native.build.skip>false</native.build.skip>
+        <spring.aot.enabled>true</spring.aot.enabled>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+            <configuration>
+              <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+              <metadataRepository>
+                <enabled>true</enabled>
+              </metadataRepository>
+              <buildArgs>
+                <!-- Memory configuration -->
+                <arg>-H:+ReportExceptionStackTraces</arg>
+                <arg>-H:+PrintClassInitialization</arg>
+                <arg>--verbose</arg>
+                <!-- Optimization flags -->
+                <arg>-Ob</arg>
+                <arg>-march=compatibility</arg>
+                <!-- Enable monitoring and JFR -->
+                <arg>--enable-monitoring=jfr,jvmstat</arg>
+                <!-- Quick build mode for development -->
+                <arg>-Ob</arg>
+              </buildArgs>
+            </configuration>
+            <executions>
+              <execution>
+                <id>build-native</id>
+                <goals>
+                  <goal>compile-no-fork</goal>
+                </goals>
+                <phase>package</phase>
+              </execution>
+              <execution>
+                <id>test-native</id>
+                <goals>
+                  <goal>test</goal>
+                </goals>
+                <phase>test</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <configuration>
+              <image>
+                <builder>paketobuildpacks/builder-jammy-tiny:latest</builder>
+                <env>
+                  <BP_NATIVE_IMAGE>true</BP_NATIVE_IMAGE>
+                  <BP_NATIVE_IMAGE_BUILD_ARGUMENTS>
+                    -H:+ReportExceptionStackTraces
+                    --verbose
+                    -march=compatibility
+                  </BP_NATIVE_IMAGE_BUILD_ARGUMENTS>
+                </env>
+              </image>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

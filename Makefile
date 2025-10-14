@@ -253,6 +253,37 @@ run-acceptance-tests-jdbcconfig:
 clean-acceptance-tests-jdbcconfig:
 	(cd compose/ && ./acceptance_jdbcconfig down -v)
 
+## Native Image Builds (GraalVM)
+## Note: Requires GraalVM JDK 21+ to be installed
+
+.PHONY: build-native-gateway
+build-native-gateway:
+	@echo "Building gateway service as GraalVM native image..."
+	@echo "This will take 5-10 minutes and requires ~8GB RAM"
+	(cd src/apps/infrastructure/gateway && ./mvnw clean package -Pnative -DskipTests)
+	@echo "Native executable built at: src/apps/infrastructure/gateway/target/gs-cloud-gateway"
+
+.PHONY: build-native-gateway-image
+build-native-gateway-image:
+	@echo "Building gateway native Docker image using Paketo buildpacks..."
+	(cd src/apps/infrastructure/gateway && ./mvnw spring-boot:build-image -Pnative)
+
+.PHONY: test-native-gateway
+test-native-gateway:
+	@echo "Testing gateway native executable..."
+	@if [ -f src/apps/infrastructure/gateway/target/gs-cloud-gateway ]; then \
+		echo "Starting native gateway..."; \
+		src/apps/infrastructure/gateway/target/gs-cloud-gateway & \
+		PID=$$!; \
+		echo "Waiting for startup..."; \
+		sleep 5; \
+		curl -f http://localhost:8080/actuator/health && echo "\n✓ Gateway health check passed" || echo "\n✗ Gateway health check failed"; \
+		kill $$PID; \
+	else \
+		echo "Error: Native executable not found. Run 'make build-native-gateway' first."; \
+		exit 1; \
+	fi
+
 # Prevent make from treating service names as targets when using $(MAKECMDGOALS) in build-image-geoserver/build-image-geoserver-multiplatform
 %:
 	@:
