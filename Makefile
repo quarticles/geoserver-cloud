@@ -172,6 +172,38 @@ verify-image:
 	  fi; \
 	done'
 
+.PHONY: sign-image-keyless
+sign-image-keyless:
+	@bash -c '\
+	TAG=$$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout); \
+	images=$$(TAG=$$TAG docker compose -f docker-build/geoserver-multiplatform.yml -f docker-build/infrastructure-multiplatform.yml config --images); \
+	for image in $$images; do \
+	  echo "Signing $$image with keyless signing..."; \
+	  cosign sign --yes --recursive $$image; \
+	  if [ $$? -ne 0 ]; then \
+	    echo "Error signing $$image"; \
+	    exit 1; \
+	  else \
+	    echo "✓ Signed $$image"; \
+	  fi; \
+	done'
+
+.PHONY: verify-image-keyless
+verify-image-keyless:
+	@echo "Note: Keyless verification requires certificate identity information from the signature."
+	@echo "For images signed in GitHub Actions, use the workflow verification command."
+	@bash -c '\
+	TAG=$$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout); \
+	images=$$(TAG=$$TAG docker compose -f docker-build/geoserver-multiplatform.yml -f docker-build/infrastructure-multiplatform.yml config --images); \
+	for image in $$images; do \
+	  echo "Verifying $$image..."; \
+	  cosign verify $$image \
+	    --certificate-identity-regexp=".*" \
+	    --certificate-oidc-issuer-regexp=".*" || \
+	  { echo "Failed to verify $$image"; exit 1; }; \
+	  echo "✓ Verified $$image"; \
+	done'
+
 .PHONY: build-acceptance
 build-acceptance:
 	docker build --tag=geoservercloud/acceptance:latest acceptance_tests
