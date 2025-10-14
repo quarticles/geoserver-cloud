@@ -36,7 +36,7 @@
     <!-- Same netty.version used by geoserver for COG and GWC Azure plugin -->
     <netty.version>4.1.113.Final</netty.version>
     <lombok.version>1.18.30</lombok.version>
-    <mapstruct.version>1.6.0.Beta1</mapstruct.version>
+    <mapstruct.version>1.6.3</mapstruct.version>
     <flyway.version>11.1.0</flyway.version>
     <testcontainers.version>1.19.3</testcontainers.version>
     <fork.javac>true</fork.javac>

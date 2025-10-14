@@ -123,11 +123,43 @@ public interface GeoServerConfigMapper {
 
     Settings toDto(SettingsInfo info);
 
-    @Mapping(target = "tileCache", ignore = true)
-    @Mapping(target = "JAI", ignore = true)
-    JAIInfo jaiInfo(JaiDto dto);
+    // Manual implementations to avoid MapStruct inspecting Eclipse Imagen JAI classes
+    default JAIInfo jaiInfo(JaiDto dto) {
+        if (dto == null) {
+            return null;
+        }
+        JAIInfo info = new org.geoserver.config.impl.JAIInfoImpl();
+        info.setAllowInterpolation(dto.isAllowInterpolation());
+        info.setRecycling(dto.isRecycling());
+        info.setTilePriority(dto.getTilePriority());
+        info.setTileThreads(dto.getTileThreads());
+        info.setMemoryCapacity(dto.getMemoryCapacity());
+        info.setMemoryThreshold(dto.getMemoryThreshold());
+        if (dto.getPngEncoderType() != null) {
+            info.setPngEncoderType(
+                    JAIInfo.PngEncoderType.valueOf(dto.getPngEncoderType().name()));
+        }
+        // tileCache and JAI fields are intentionally not mapped
+        return info;
+    }
 
-    JaiDto jaiInfo(JAIInfo info);
+    default JaiDto jaiInfo(JAIInfo info) {
+        if (info == null) {
+            return null;
+        }
+        JaiDto dto = new JaiDto();
+        dto.setAllowInterpolation(info.getAllowInterpolation());
+        dto.setRecycling(info.isRecycling());
+        dto.setTilePriority(info.getTilePriority());
+        dto.setTileThreads(info.getTileThreads());
+        dto.setMemoryCapacity(info.getMemoryCapacity());
+        dto.setMemoryThreshold(info.getMemoryThreshold());
+        if (info.getPngEncoderType() != null) {
+            dto.setPngEncoderType(
+                    JaiDto.PngEncoderType.valueOf(info.getPngEncoderType().name()));
+        }
+        return dto;
+    }
 
     @Mapping(target = "id", ignore = true) // set by factory method
     LoggingInfo toInfo(Logging dto);

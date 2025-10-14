@@ -83,6 +83,10 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <generatedSourcesDirectory>${project.build.directory}/generated-sources-mapstruct</generatedSourcesDirectory>
+          <compilerArgs>
+            <arg>-Amapstruct.verbose=true</arg>
+            <arg>-Amapstruct.suppressGeneratorTimestamp=true</arg>
+          </compilerArgs>
           <annotationProcessorPaths>
             <path>
               <groupId>org.projectlombok</groupId>
