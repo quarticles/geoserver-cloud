@@ -244,5 +244,9 @@ public interface GeoServerConfigMapper {
 
     CogSettingsStore cogSettingsStore(CogSettingsStoreDto dto);
 
+    // S3 endpoint fields are DTO-only for Spring Boot configuration, not stored in GeoServer catalog
+    @Mapping(target = "s3Endpoint", ignore = true)
+    @Mapping(target = "s3Region", ignore = true)
+    @Mapping(target = "s3PathStyleAccess", ignore = true)
     CogSettingsStoreDto cogSettingsStore(CogSettingsStore info);
 }
