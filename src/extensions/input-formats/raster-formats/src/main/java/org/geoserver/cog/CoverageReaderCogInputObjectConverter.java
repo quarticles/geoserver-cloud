@@ -76,8 +76,8 @@ public class CoverageReaderCogInputObjectConverter implements CoverageReaderInpu
 
         MetadataMap metadata = store.getMetadata();
         CogSettings cogSettings = new CogSettings();
-        if (metadata != null && metadata.containsKey(CogSettings.Key)) {
-            cogSettings = (CogSettings) metadata.get(CogSettings.Key);
+        if (metadata != null && metadata.containsKey(CogSettings.COG_SETTINGS_KEY)) {
+            cogSettings = (CogSettings) metadata.get(CogSettings.COG_SETTINGS_KEY);
         }
 
         Map<String, Serializable> connectionParameters = store.getConnectionParameters();
