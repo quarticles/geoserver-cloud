@@ -32,5 +32,5 @@ RUN mkdir /tmp/tmpdatadir && \
     echo "CDS training run failed - continuing without CDS optimization"
 RUN rm -rf /tmp/*
 
-# Only use CDS archive if it was successfully created
-ENV JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} $(test -f application.jsa && echo '-XX:SharedArchiveFile=application.jsa' || echo '')"
+# Enable CDS for faster startup
+ENV JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} -XX:SharedArchiveFile=application.jsa"
