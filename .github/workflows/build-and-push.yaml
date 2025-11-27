@@ -25,7 +25,7 @@ jobs:
   base-images:
     if: github.repository == 'quarticles/geoserver-cloud'
     name: Build and Push Base Images
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       contents: read
@@ -82,7 +82,7 @@ jobs:
     needs: base-images
     if: github.repository == 'quarticles/geoserver-cloud'
     name: Build infrastructure images
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       contents: read
@@ -139,7 +139,7 @@ jobs:
     needs: base-images
     if: github.repository == 'quarticles/geoserver-cloud'
     name: Build GeoServer image
-    runs-on: arc-runner-set
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       contents: read
