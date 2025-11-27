@@ -14,8 +14,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 @AutoConfiguration
 @SuppressWarnings("java:S1118") // Suppress SonarLint warning, constructor needs to be public
 @ConditionalOnClass({CogSettings.class})
-@ImportFilteredResource("jar:gs-cog-.*!/applicationContext.xml#name=" + COGAutoConfiguration.EXCLUDE_WEBUI_BEANS)
+@ImportFilteredResource("jar:gs-cog-.*!/applicationContext.xml#name=" + COGAutoConfiguration.EXCLUDE_WEBUI_BEANS_REGEX)
 public class COGAutoConfiguration {
 
-    static final String EXCLUDE_WEBUI_BEANS = COGWebUIAutoConfiguration.WEBUI_BEAN_NAMES;
+    /** Regex that matches all bean names EXCEPT the WebUI beans (uses negative lookahead) */
+    static final String EXCLUDE_WEBUI_BEANS_REGEX = "^(?!" + COGWebUIAutoConfiguration.WEBUI_BEAN_NAMES + ").*$";
 }
