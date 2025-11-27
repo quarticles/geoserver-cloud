@@ -38,16 +38,28 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
         cache: 'maven'
+        server-id: quarticles-github-packages
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
 
     - name: Validate pom formatting
       run: make build-tools lint-pom
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Validate source code formatting
       run: make lint-java
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Test
       run: |
         make test
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   acceptance:
     name: Acceptance
@@ -72,9 +84,15 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
         cache: 'maven'
+        server-id: quarticles-github-packages
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
 
     - name: Install packages
       run: make install
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build base images
       run: REPACKAGE=false make build-base-images

@@ -58,10 +58,16 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
         cache: 'maven'
+        server-id: quarticles-github-packages
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
 
     - name: Package base images
       run: |
         make package-base-images
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push base images
       run: |
@@ -109,10 +115,16 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
         cache: 'maven'
+        server-id: quarticles-github-packages
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
 
     - name: Package infrastructure apps
       run: |
         make package-infrastructure-images
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push infrastructure images
       run: |
@@ -165,10 +177,16 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
         cache: 'maven'
+        server-id: quarticles-github-packages
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
 
     - name: Package GeoServer apps
       run: |
         ./mvnw clean package -DskipTests -T1C -ntp -am -pl src/apps/geoserver/${{ matrix.app }}
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push GeoServer images
       run: |
