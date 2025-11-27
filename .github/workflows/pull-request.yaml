@@ -25,7 +25,7 @@ jobs:
   test:
     name: Build and Test Pull Request
     if: github.repository == 'quarticles/geoserver-cloud'
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     timeout-minutes: 60
     steps:
     - name: Checkout
@@ -64,7 +64,7 @@ jobs:
   acceptance:
     name: Acceptance
     if: github.repository == 'quarticles/geoserver-cloud'
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set
     timeout-minutes: 60
     #needs: test
     strategy:
