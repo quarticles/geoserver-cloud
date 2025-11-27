@@ -53,7 +53,7 @@
       <groupId>org.geoserver.community</groupId>
       <artifactId>gs-cog-s3</artifactId>
       <exclusions>
-        <!-- Exclude original S3RangeReader - we provide a shadowed version that supports S3-compatible endpoints -->
+        <!-- Exclude original S3RangeReader - we use the Quarticle fork that supports S3-compatible endpoints -->
         <exclusion>
           <groupId>it.geosolutions.imageio-ext</groupId>
           <artifactId>imageio-ext-cog-rangereader-s3</artifactId>
@@ -61,9 +61,10 @@
       </exclusions>
     </dependency>
     <dependency>
-      <!-- AWS S3 SDK - needed for our shadowed S3RangeReader (originally from imageio-ext-cog-rangereader-s3) -->
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>s3</artifactId>
+      <!-- Quarticle fork of imageio-ext S3RangeReader with S3-compatible endpoint support (Wasabi, MinIO, etc.) -->
+      <groupId>io.github.quarticles</groupId>
+      <artifactId>imageio-ext-cog-rangereader-s3</artifactId>
+      <version>2.0.1-quarticle-1</version>
     </dependency>
     <dependency>
       <!-- alternative http client for gs-cog-s3 replacing software.amazon.awssdk:netty-nio-client -->

@@ -12,7 +12,7 @@
     <module>src</module>
   </modules>
   <properties>
-    <revision>2.28.0.2-qrt04</revision>
+    <revision>2.28.0.2-qrt05</revision>
     <fmt.skip>false</fmt.skip>
     <sortpom.skip>${fmt.skip}</sortpom.skip>
     <sortpom.action>sort</sortpom.action>
@@ -335,6 +335,17 @@
       <?SORTPOM IGNORE?>
       <url>https://public:&#103;hp_Mp4UdrZ2GYC4v4UtdzEirXLig4D8t54dKkAf@maven.pkg.github.com/camptocamp/geoserver-cloud-geoserver</url>
       <?SORTPOM RESUME?>
+    </repository>
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>quarticles-github-packages</id>
+      <name>Quarticle ImageIO-Ext Fork</name>
+      <url>https://maven.pkg.github.com/quarticles/imageio-ext-cog-s3</url>
     </repository>
   </repositories>
 
