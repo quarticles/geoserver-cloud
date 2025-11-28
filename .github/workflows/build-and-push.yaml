@@ -63,8 +63,12 @@ jobs:
         server-password: GITHUB_TOKEN
 
     - name: Package base images
-      run: |
-        make package-base-images
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 30
+        max_attempts: 3
+        retry_wait_seconds: 60
+        command: make package-base-images
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -120,8 +124,12 @@ jobs:
         server-password: GITHUB_TOKEN
 
     - name: Package infrastructure apps
-      run: |
-        make package-infrastructure-images
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 30
+        max_attempts: 3
+        retry_wait_seconds: 60
+        command: make package-infrastructure-images
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -182,8 +190,12 @@ jobs:
         server-password: GITHUB_TOKEN
 
     - name: Package GeoServer apps
-      run: |
-        ./mvnw clean package -DskipTests -T1C -ntp -am -pl src/apps/geoserver/${{ matrix.app }}
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 30
+        max_attempts: 3
+        retry_wait_seconds: 60
+        command: ./mvnw clean package -DskipTests -T1C -ntp -am -pl src/apps/geoserver/${{ matrix.app }}
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
