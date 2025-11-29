@@ -14,14 +14,21 @@ import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.StringCodec;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.geowebcache.GeoWebCacheExtensions;
+import org.geowebcache.config.BlobStoreInfo;
 import org.geowebcache.io.ByteArrayResource;
 import org.geowebcache.io.Resource;
+import org.geowebcache.layer.TileLayerDispatcher;
+import org.geowebcache.locks.LockProvider;
 import org.geowebcache.storage.BlobStore;
+import org.geowebcache.storage.BlobStoreAggregator;
 import org.geowebcache.storage.BlobStoreListener;
 import org.geowebcache.storage.StorageException;
 import org.geowebcache.storage.TileObject;
@@ -51,7 +58,15 @@ public class ValkeyCacheBlobStore implements BlobStore {
 
     private static final Logger LOGGER = Logger.getLogger(ValkeyCacheBlobStore.class.getName());
 
-    private final BlobStore delegate;
+    /** Delegate blob store - may be null initially for lazy resolution */
+    private volatile BlobStore delegate;
+
+    /** Delegate blob store ID for lazy resolution */
+    private final String delegateId;
+
+    /** Listeners added before delegate is resolved */
+    private final List<BlobStoreListener> pendingListeners = new ArrayList<>();
+
     private final ValkeyBlobStoreInfo config;
 
     private RedisClient redisClient;
@@ -73,6 +88,24 @@ public class ValkeyCacheBlobStore implements BlobStore {
      */
     public ValkeyCacheBlobStore(BlobStore delegate, ValkeyBlobStoreInfo config) throws StorageException {
         this.delegate = delegate;
+        this.delegateId = null;
+        this.config = config;
+        this.keyPrefix = config.getKeyPrefix() != null ? config.getKeyPrefix() : "gwc:";
+        this.ttl = config.getTtl();
+
+        initializeConnection();
+    }
+
+    /**
+     * Creates a ValkeyCacheBlobStore with lazy delegate resolution.
+     * The delegate BlobStore will be resolved on first use via the CompositeBlobStore.
+     *
+     * @param delegateId the ID of the delegate blob store to resolve
+     * @param config     Valkey configuration
+     */
+    public ValkeyCacheBlobStore(String delegateId, ValkeyBlobStoreInfo config) throws StorageException {
+        this.delegate = null;
+        this.delegateId = delegateId;
         this.config = config;
         this.keyPrefix = config.getKeyPrefix() != null ? config.getKeyPrefix() : "gwc:";
         this.ttl = config.getTtl();
@@ -85,6 +118,63 @@ public class ValkeyCacheBlobStore implements BlobStore {
      */
     public static ValkeyCacheBlobStore wrap(BlobStore delegate, ValkeyBlobStoreInfo config) throws StorageException {
         return new ValkeyCacheBlobStore(delegate, config);
+    }
+
+    /**
+     * Ensures the delegate BlobStore is resolved (for lazy initialization).
+     */
+    private BlobStore ensureDelegate() throws StorageException {
+        if (delegate == null) {
+            synchronized (this) {
+                if (delegate == null) {
+                    if (delegateId == null) {
+                        throw new StorageException("Delegate BlobStore not set and no delegateId provided");
+                    }
+                    try {
+                        // Get the BlobStoreAggregator to look up the delegate config
+                        BlobStoreAggregator aggregator = GeoWebCacheExtensions.bean(BlobStoreAggregator.class);
+                        if (aggregator == null) {
+                            throw new StorageException("BlobStoreAggregator not available in application context");
+                        }
+
+                        // Get the delegate blob store info
+                        BlobStoreInfo delegateInfo = aggregator.getBlobStore(delegateId);
+                        if (delegateInfo == null) {
+                            throw new StorageException("Delegate BlobStore with ID '" + delegateId + "' not found");
+                        }
+
+                        // Get TileLayerDispatcher and LockProvider to create the instance
+                        TileLayerDispatcher tileLayerDispatcher = GeoWebCacheExtensions.bean(TileLayerDispatcher.class);
+                        LockProvider lockProvider = GeoWebCacheExtensions.bean(LockProvider.class);
+
+                        // Create the delegate blob store instance
+                        BlobStore resolved = delegateInfo.createInstance(tileLayerDispatcher, lockProvider);
+                        if (resolved == null) {
+                            throw new StorageException(
+                                    "Failed to create delegate BlobStore instance for ID '" + delegateId + "'");
+                        }
+
+                        this.delegate = resolved;
+                        LOGGER.info("Resolved delegate BlobStore: " + delegateId + " -> "
+                                + resolved.getClass().getSimpleName());
+
+                        // Replay pending listeners
+                        synchronized (pendingListeners) {
+                            for (BlobStoreListener listener : pendingListeners) {
+                                this.delegate.addListener(listener);
+                            }
+                            pendingListeners.clear();
+                        }
+
+                    } catch (StorageException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new StorageException("Failed to resolve delegate BlobStore: " + delegateId, e);
+                    }
+                }
+            }
+        }
+        return delegate;
     }
 
     private void initializeConnection() throws StorageException {
@@ -110,8 +200,13 @@ public class ValkeyCacheBlobStore implements BlobStore {
 
             // Test connection
             commands.ping();
-            LOGGER.info("Valkey cache connected at " + address + " (wrapping "
-                    + delegate.getClass().getSimpleName() + ")");
+            if (delegate != null) {
+                LOGGER.info("Valkey cache connected at " + address + " (wrapping "
+                        + delegate.getClass().getSimpleName() + ")");
+            } else {
+                LOGGER.info("Valkey cache connected at " + address + " (delegate will be resolved lazily: " + delegateId
+                        + ")");
+            }
 
         } catch (Exception e) {
             throw new StorageException("Failed to connect to Valkey cache", e);
@@ -141,7 +236,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
         cacheMisses++;
         LOGGER.finest(() -> "Cache MISS: " + key);
 
-        if (delegate.get(tile)) {
+        if (ensureDelegate().get(tile)) {
             // Cache the result
             try {
                 byte[] data = toByteArray(tile.getBlob());
@@ -162,7 +257,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
     @Override
     public void put(TileObject tile) throws StorageException {
         // Write-through: persist to delegate first
-        delegate.put(tile);
+        ensureDelegate().put(tile);
 
         // Then cache in Valkey
         String key = buildTileKey(tile);
@@ -190,7 +285,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
         }
 
         // Delete from delegate
-        return delegate.delete(tile);
+        return ensureDelegate().delete(tile);
     }
 
     @Override
@@ -203,7 +298,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
         }
 
         // Delete from delegate
-        return delegate.delete(layerName);
+        return ensureDelegate().delete(layerName);
     }
 
     @Override
@@ -216,7 +311,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
         }
 
         // Delete from delegate
-        return delegate.deleteByGridsetId(layerName, gridSetId);
+        return ensureDelegate().deleteByGridsetId(layerName, gridSetId);
     }
 
     @Override
@@ -231,7 +326,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
             LOGGER.log(Level.WARNING, "Failed to invalidate range cache in Valkey", e);
         }
 
-        return delegate.delete(tileRange);
+        return ensureDelegate().delete(tileRange);
     }
 
     @Override
@@ -243,7 +338,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
             LOGGER.log(Level.WARNING, "Failed to invalidate parameters cache in Valkey", e);
         }
 
-        return delegate.deleteByParametersId(layerName, parametersId);
+        return ensureDelegate().deleteByParametersId(layerName, parametersId);
     }
 
     @Override
@@ -255,7 +350,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
             LOGGER.log(Level.WARNING, "Failed to invalidate renamed layer cache in Valkey", e);
         }
 
-        return delegate.rename(oldLayerName, newLayerName);
+        return ensureDelegate().rename(oldLayerName, newLayerName);
     }
 
     @Override
@@ -267,7 +362,7 @@ public class ValkeyCacheBlobStore implements BlobStore {
             LOGGER.log(Level.WARNING, "Failed to clear Valkey cache", e);
         }
 
-        delegate.clear();
+        ensureDelegate().clear();
     }
 
     @Override
@@ -278,45 +373,78 @@ public class ValkeyCacheBlobStore implements BlobStore {
         if (redisClient != null) {
             redisClient.shutdown();
         }
-        delegate.destroy();
+        if (delegate != null) {
+            delegate.destroy();
+        }
         LOGGER.info("Valkey cache connection closed");
     }
 
     @Override
     public void addListener(BlobStoreListener listener) {
-        delegate.addListener(listener);
+        if (delegate != null) {
+            delegate.addListener(listener);
+        } else {
+            synchronized (pendingListeners) {
+                pendingListeners.add(listener);
+            }
+        }
     }
 
     @Override
     public boolean removeListener(BlobStoreListener listener) {
-        return delegate.removeListener(listener);
+        if (delegate != null) {
+            return delegate.removeListener(listener);
+        } else {
+            synchronized (pendingListeners) {
+                return pendingListeners.remove(listener);
+            }
+        }
     }
 
     // Delegate to underlying store for metadata operations
 
     @Override
     public boolean layerExists(String layerName) {
-        return delegate.layerExists(layerName);
+        try {
+            return ensureDelegate().layerExists(layerName);
+        } catch (StorageException e) {
+            LOGGER.log(Level.WARNING, "Failed to check layer existence", e);
+            return false;
+        }
     }
 
     @Override
     public String getLayerMetadata(String layerName, String key) {
-        return delegate.getLayerMetadata(layerName, key);
+        try {
+            return ensureDelegate().getLayerMetadata(layerName, key);
+        } catch (StorageException e) {
+            LOGGER.log(Level.WARNING, "Failed to get layer metadata", e);
+            return null;
+        }
     }
 
     @Override
     public void putLayerMetadata(String layerName, String key, String value) {
-        delegate.putLayerMetadata(layerName, key, value);
+        try {
+            ensureDelegate().putLayerMetadata(layerName, key, value);
+        } catch (StorageException e) {
+            LOGGER.log(Level.WARNING, "Failed to put layer metadata", e);
+        }
     }
 
     @Override
     public Map<String, Optional<Map<String, String>>> getParametersMapping(String layerName) {
-        return delegate.getParametersMapping(layerName);
+        try {
+            return ensureDelegate().getParametersMapping(layerName);
+        } catch (StorageException e) {
+            LOGGER.log(Level.WARNING, "Failed to get parameters mapping", e);
+            return Map.of();
+        }
     }
 
     @Override
     public Set<String> getParameterIds(String layerName) throws StorageException {
-        return delegate.getParameterIds(layerName);
+        return ensureDelegate().getParameterIds(layerName);
     }
 
     // Helper methods

@@ -102,9 +102,13 @@ public class ValkeyBlobStoreInfo extends BlobStoreInfo {
         if ("standalone".equalsIgnoreCase(mode)) {
             return new ValkeyBlobStore(this, layers, lockProvider);
         } else {
-            // Cache mode requires delegate to be resolved by the caller
-            throw new StorageException(
-                    "Cache mode requires delegate BlobStore. Use ValkeyCacheBlobStore.wrap() instead.");
+            // Cache mode - use lazy delegate resolution
+            if (delegateBlobStoreId == null || delegateBlobStoreId.isEmpty()) {
+                throw new StorageException("Delegate BlobStore ID must be set for cache mode.");
+            }
+            // Create with lazy delegate resolution - the delegate will be looked up from
+            // CompositeBlobStore on first use
+            return new ValkeyCacheBlobStore(delegateBlobStoreId, this);
         }
     }
 
