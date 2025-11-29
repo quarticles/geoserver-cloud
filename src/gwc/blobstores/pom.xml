@@ -50,6 +50,11 @@
       <groupId>org.geoserver.community</groupId>
       <artifactId>gs-gwc-gcs-blob</artifactId>
     </dependency>
+    <!-- Valkey/Redis BlobStore support -->
+    <dependency>
+      <groupId>io.lettuce</groupId>
+      <artifactId>lettuce-core</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.geoserver.web</groupId>
       <artifactId>gs-web-gwc</artifactId>

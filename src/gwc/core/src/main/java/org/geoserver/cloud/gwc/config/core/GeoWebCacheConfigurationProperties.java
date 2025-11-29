@@ -69,6 +69,7 @@ public @Data class GeoWebCacheConfigurationProperties {
     public static final String BLOBSTORE_S3_ENABLED = "gwc.blobstores.s3";
     public static final String BLOBSTORE_AZURE_ENABLED = "gwc.blobstores.azure";
     public static final String BLOBSTORE_GCS_ENABLED = "gwc.blobstores.gcs";
+    public static final String BLOBSTORE_VALKEY_ENABLED = "gwc.blobstores.valkey";
 
     /**
      * Enables the core GeoWebCache functionality and integration with GeoServer tile layers. All
@@ -180,6 +181,13 @@ public @Data class GeoWebCacheConfigurationProperties {
          * loaded to the runtime context.
          */
         private boolean gcs = false;
+
+        /**
+         * Enables or disables support for Valkey/Redis BLOB Store. This is not a dynamic runtime
+         * setting, but an application container level one. Disabled BLOB stores won't even be
+         * loaded to the runtime context.
+         */
+        private boolean valkey = false;
     }
 
     private static @Data class DiskQuotaConfig {
