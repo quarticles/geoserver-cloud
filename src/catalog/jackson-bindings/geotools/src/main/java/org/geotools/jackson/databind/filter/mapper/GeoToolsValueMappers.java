@@ -106,6 +106,15 @@ public abstract class GeoToolsValueMappers {
         try {
             return null == value ? null : (Class<T>) ClassUtils.getClass(value);
         } catch (ClassNotFoundException e) {
+            // Fallback: attempt to recover from malformed class names where '.' was replaced by '$'
+            // e.g., org$geoserver$catalog$DimensionInfo -> org.geoserver.catalog.DimensionInfo
+            if (value != null && value.contains("$")) {
+                try {
+                    return (Class<T>) ClassUtils.getClass(value.replace('$', '.'));
+                } catch (ClassNotFoundException ex) {
+                    // If fallback also fails, throw the original exception
+                }
+            }
             throw new IllegalArgumentException(e);
         }
     }
