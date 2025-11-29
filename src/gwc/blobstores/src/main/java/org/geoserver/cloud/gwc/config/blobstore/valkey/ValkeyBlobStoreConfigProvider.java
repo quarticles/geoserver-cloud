@@ -29,6 +29,12 @@ public class ValkeyBlobStoreConfigProvider implements XMLConfigurationProvider {
         // Allow the class for security
         xs.allowTypes(new Class[] {ValkeyBlobStoreInfo.class});
 
+        // Allow java.util.CollSer for backward compatibility with configs created
+        // using List.of() which serializes to this internal JDK class
+        xs.allowTypes(new String[] {
+            "java.util.CollSer", "java.util.ImmutableCollections$List12", "java.util.ImmutableCollections$ListN"
+        });
+
         // Configure field aliases for cleaner XML
         xs.aliasField("addresses", ValkeyBlobStoreInfo.class, "addresses");
         xs.aliasField("password", ValkeyBlobStoreInfo.class, "password");
