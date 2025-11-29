@@ -381,4 +381,101 @@ public class ValkeyCacheBlobStore implements BlobStore {
     public BlobStore getDelegate() {
         return delegate;
     }
+
+    // Cache management methods for manual invalidation
+
+    /**
+     * Invalidate all cached tiles for a layer.
+     * Use this when tiles have been modified externally (not through GWC).
+     *
+     * @param layerName the layer name
+     * @return number of keys invalidated
+     */
+    public long invalidateLayer(String layerName) {
+        String pattern = keyPrefix + "tile:" + layerName + ":*";
+        return invalidateByPattern(pattern);
+    }
+
+    /**
+     * Invalidate all cached tiles for a layer and gridset.
+     *
+     * @param layerName the layer name
+     * @param gridSetId the gridset ID
+     * @return number of keys invalidated
+     */
+    public long invalidateGridset(String layerName, String gridSetId) {
+        String pattern = keyPrefix + "tile:" + layerName + ":" + gridSetId + ":*";
+        return invalidateByPattern(pattern);
+    }
+
+    /**
+     * Invalidate all cached tiles matching a pattern.
+     *
+     * @param pattern Redis key pattern (e.g., "gwc:tile:myLayer:*")
+     * @return number of keys invalidated
+     */
+    public long invalidateByPattern(String pattern) {
+        long count = 0;
+        try {
+            io.lettuce.core.ScanIterator<String> iterator =
+                    io.lettuce.core.ScanIterator.scan(commands, io.lettuce.core.ScanArgs.Builder.matches(pattern));
+
+            while (iterator.hasNext()) {
+                commands.del(iterator.next());
+                count++;
+            }
+            LOGGER.info("Invalidated " + count + " cached tiles matching: " + pattern);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Failed to invalidate cache by pattern: " + pattern, e);
+        }
+        return count;
+    }
+
+    /**
+     * Invalidate the entire tile cache.
+     * Use with caution - this will cause all tiles to be re-fetched from the delegate.
+     *
+     * @return number of keys invalidated
+     */
+    public long invalidateAll() {
+        String pattern = keyPrefix + "tile:*";
+        return invalidateByPattern(pattern);
+    }
+
+    /**
+     * Get approximate cache size (number of cached tiles).
+     *
+     * @return estimated number of cached tiles
+     */
+    public long getCacheSize() {
+        try {
+            // Use DBSIZE for a quick estimate
+            // Note: This counts all keys in the database, not just tiles
+            return commands.dbsize();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Failed to get cache size", e);
+            return -1;
+        }
+    }
+
+    /**
+     * Get memory info from Valkey.
+     *
+     * @return memory usage string or null on error
+     */
+    public String getMemoryInfo() {
+        try {
+            String info = commands.info("memory");
+            // Extract used_memory_human
+            for (String line : info.split("\n")) {
+                if (line.startsWith("used_memory_human:")) {
+                    return line.split(":")[1].trim();
+                }
+            }
+            return info;
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Failed to get memory info", e);
+            return null;
+        }
+    }
 }
