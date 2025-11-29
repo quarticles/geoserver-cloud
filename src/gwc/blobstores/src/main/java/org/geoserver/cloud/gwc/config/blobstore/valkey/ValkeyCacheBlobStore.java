@@ -145,7 +145,9 @@ public class ValkeyCacheBlobStore implements BlobStore {
 
                         // Get TileLayerDispatcher and LockProvider to create the instance
                         TileLayerDispatcher tileLayerDispatcher = GeoWebCacheExtensions.bean(TileLayerDispatcher.class);
-                        LockProvider lockProvider = GeoWebCacheExtensions.bean(LockProvider.class);
+                        // Use the GWC clustering lock provider bean by name to avoid multiple LockProvider beans issue
+                        LockProvider lockProvider = (LockProvider)
+                                org.geoserver.platform.GeoServerExtensions.bean("gwcClusteringLockProvider");
 
                         // Create the delegate blob store instance
                         BlobStore resolved = delegateInfo.createInstance(tileLayerDispatcher, lockProvider);
