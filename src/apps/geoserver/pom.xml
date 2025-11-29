@@ -18,19 +18,6 @@
     <module>webui</module>
     <module>gwc</module>
   </modules>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <!-- For testing service conditional annotations -->
-        <groupId>org.geoserver.cloud.extensions</groupId>
-        <artifactId>gs-cloud-extensions-core</artifactId>
-        <version>${project.version}</version>
-        <classifier>tests</classifier>
-        <type>test-jar</type>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>org.geoserver.cloud</groupId>
@@ -94,13 +81,38 @@
       <artifactId>xmlunit-assertj3</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <!-- For testing service conditional annotations -->
-      <groupId>org.geoserver.cloud.extensions</groupId>
-      <artifactId>gs-cloud-extensions-core</artifactId>
-      <classifier>tests</classifier>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
+  <profiles>
+    <profile>
+      <id>test-dependencies</id>
+      <activation>
+        <property>
+          <name>!maven.test.skip</name>
+        </property>
+      </activation>
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <!-- For testing service conditional annotations -->
+            <groupId>org.geoserver.cloud.extensions</groupId>
+            <artifactId>gs-cloud-extensions-core</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
+      <dependencies>
+        <dependency>
+          <!-- For testing service conditional annotations -->
+          <groupId>org.geoserver.cloud.extensions</groupId>
+          <artifactId>gs-cloud-extensions-core</artifactId>
+          <classifier>tests</classifier>
+          <type>test-jar</type>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>
