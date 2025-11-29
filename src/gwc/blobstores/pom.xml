@@ -26,6 +26,11 @@
       <groupId>org.geoserver.cloud.gwc</groupId>
       <artifactId>gwc-cloud-core</artifactId>
     </dependency>
+    <!-- Catalog events for cache invalidation -->
+    <dependency>
+      <groupId>org.geoserver.cloud.catalog</groupId>
+      <artifactId>gs-cloud-catalog-events</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.geoserver.extension</groupId>
       <artifactId>gs-gwc-s3</artifactId>
@@ -54,6 +59,17 @@
     <dependency>
       <groupId>io.lettuce</groupId>
       <artifactId>lettuce-core</artifactId>
+    </dependency>
+    <!-- Spring Web for REST controller (optional, only used in web context) -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.geoserver.web</groupId>
