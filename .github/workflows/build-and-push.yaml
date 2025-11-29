@@ -196,7 +196,7 @@ jobs:
         timeout_minutes: 30
         max_attempts: 3
         retry_wait_seconds: 60
-        command: ./mvnw clean package -Dmaven.test.skip=true -T1C -ntp -am -pl src/apps/geoserver/${{ matrix.app }}
+        command: ./mvnw clean install -DskipTests -T1C -ntp -U -am -pl src/apps/geoserver/${{ matrix.app }}
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
