@@ -169,9 +169,9 @@ public class ValkeyBlobStoreInfo extends BlobStoreInfo {
      */
     public void setAddressesAsString(String addressesStr) {
         if (addressesStr == null || addressesStr.trim().isEmpty()) {
-            this.addresses = List.of();
+            this.addresses = new java.util.ArrayList<>();
         } else {
-            this.addresses = List.of(addressesStr.split("\\s*,\\s*"));
+            this.addresses = new java.util.ArrayList<>(java.util.Arrays.asList(addressesStr.split("\\s*,\\s*")));
         }
     }
 

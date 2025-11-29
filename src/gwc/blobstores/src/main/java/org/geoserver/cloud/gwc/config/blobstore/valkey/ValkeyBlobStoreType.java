@@ -6,7 +6,8 @@
 package org.geoserver.cloud.gwc.config.blobstore.valkey;
 
 import java.io.Serial;
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.IModel;
 import org.geoserver.gwc.web.blob.BlobStoreType;
@@ -31,7 +32,7 @@ public class ValkeyBlobStoreType implements BlobStoreType<ValkeyBlobStoreInfo> {
         ValkeyBlobStoreInfo config = new ValkeyBlobStoreInfo();
         config.setEnabled(true);
         config.setMode("cache");
-        config.setAddresses(List.of("localhost:6379"));
+        config.setAddresses(new ArrayList<>(Collections.singletonList("localhost:6379")));
         config.setDatabase(0);
         config.setTtlSeconds(86400);
         config.setKeyPrefix("gwc:");
