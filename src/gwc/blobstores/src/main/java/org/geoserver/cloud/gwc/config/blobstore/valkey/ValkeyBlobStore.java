@@ -81,6 +81,13 @@ public class ValkeyBlobStore implements BlobStore {
                             ? config.getAddresses().get(0)
                             : "redis://localhost:6379";
 
+            // Ensure address has redis:// or rediss:// prefix
+            if (!address.startsWith("redis://") && !address.startsWith("rediss://")) {
+                address = "redis://" + address;
+            }
+
+            LOGGER.info("Connecting to Valkey at: " + address);
+
             RedisURI.Builder uriBuilder = RedisURI.builder(RedisURI.create(address))
                     .withDatabase(config.getDatabase())
                     .withTimeout(Duration.ofMillis(config.getConnectionTimeout()));
