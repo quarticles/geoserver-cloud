@@ -6,6 +6,7 @@ on:
     branches:
       - quarticles-main
       - "release/**"
+      - "feature/valkey-blobstore"
     paths:
       - "Makefile"
       - "pom.xml"
