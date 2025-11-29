@@ -5,10 +5,16 @@
  */
 package org.geoserver.cloud.autoconfigure.gwc.blobstore;
 
-import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
+import org.geoserver.cloud.autoconfigure.gwc.ConditionalOnGeoServerWebUIEnabled;
 import org.geoserver.cloud.autoconfigure.gwc.ConditionalOnValkeyBlobstoreEnabled;
+import org.geoserver.cloud.autoconfigure.gwc.blobstore.ValkeyBlobstoreAutoConfiguration.GsWebUIAutoConfiguration;
 import org.geoserver.cloud.gwc.config.blobstore.valkey.ValkeyBlobstoreConfiguration;
+import org.geoserver.cloud.gwc.config.blobstore.valkey.ValkeyBlobstoreGsWebUIConfiguration;
+import org.geoserver.gwc.web.blob.BlobStorePage;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -30,15 +36,20 @@ import org.springframework.context.annotation.Import;
  *     valkey: true
  * }</pre>
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
+@SuppressWarnings("java:S1118")
 @ConditionalOnValkeyBlobstoreEnabled
-@Import(ValkeyBlobstoreConfiguration.class)
+@Import({ValkeyBlobstoreConfiguration.class, GsWebUIAutoConfiguration.class})
+@Slf4j(topic = "org.geoserver.cloud.autoconfigure.gwc.blobstore")
 public class ValkeyBlobstoreAutoConfiguration {
 
-    private static final Logger LOGGER = Logger.getLogger(ValkeyBlobstoreAutoConfiguration.class.getName());
-
-    @PostConstruct
-    void log() {
-        LOGGER.info("GeoWebCache Valkey BlobStore auto-configuration enabled");
+    public @PostConstruct void log() {
+        log.info("GeoWebCache Valkey BlobStore integration enabled");
     }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnGeoServerWebUIEnabled
+    @ConditionalOnClass(BlobStorePage.class)
+    @Import(ValkeyBlobstoreGsWebUIConfiguration.class)
+    static class GsWebUIAutoConfiguration {}
 }

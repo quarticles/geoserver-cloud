@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:wicket="http://wicket.apache.org">
+<head>
+</head>
+<body>
+<wicket:panel>
+  <div class="form-group">
+    <label for="mode" wicket:id="mode.label">Mode</label>
+    <select wicket:id="mode" id="mode" class="form-control"></select>
+    <p class="help-block">
+      <em>standalone</em>: Store tiles only in Valkey (ephemeral cache with LRU eviction)<br/>
+      <em>cache</em>: Use Valkey as L1 cache over another BlobStore (e.g., filesystem, S3)
+    </p>
+  </div>
+
+  <div class="form-group">
+    <label for="delegateBlobStoreId">Delegate BlobStore ID</label>
+    <input wicket:id="delegateBlobStoreId" id="delegateBlobStoreId" type="text" class="form-control"/>
+    <p class="help-block">Required for cache mode. The ID of the backend BlobStore to cache (e.g., "default" for filesystem)</p>
+  </div>
+
+  <fieldset>
+    <legend>Connection Settings</legend>
+
+    <div class="form-group">
+      <label for="addresses">Addresses</label>
+      <input wicket:id="addresses" id="addresses" type="text" class="form-control"/>
+      <p class="help-block">Comma-separated list of Valkey server addresses (e.g., valkey-master:6379,valkey-replica:6379)</p>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input wicket:id="password" id="password" type="password" class="form-control"/>
+      <p class="help-block">Optional authentication password</p>
+    </div>
+
+    <div class="form-group">
+      <label for="database">Database</label>
+      <input wicket:id="database" id="database" type="text" class="form-control"/>
+      <p class="help-block">Valkey database index (0-15, default: 0)</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Cache Settings</legend>
+
+    <div class="form-group">
+      <label for="ttlSeconds">TTL (seconds)</label>
+      <input wicket:id="ttlSeconds" id="ttlSeconds" type="text" class="form-control"/>
+      <p class="help-block">Time-to-live for cached tiles in seconds (0 = no expiry, use LRU only). Default: 86400 (24 hours)</p>
+    </div>
+
+    <div class="form-group">
+      <label for="keyPrefix">Key Prefix</label>
+      <input wicket:id="keyPrefix" id="keyPrefix" type="text" class="form-control"/>
+      <p class="help-block">Prefix for all Valkey keys to namespace tiles. Default: "gwc:"</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Connection Pool</legend>
+
+    <div class="form-group">
+      <label for="connectionPoolSize">Pool Size</label>
+      <input wicket:id="connectionPoolSize" id="connectionPoolSize" type="text" class="form-control"/>
+      <p class="help-block">Maximum number of connections in the pool. Default: 64</p>
+    </div>
+
+    <div class="form-group">
+      <label for="connectionMinIdleSize">Min Idle</label>
+      <input wicket:id="connectionMinIdleSize" id="connectionMinIdleSize" type="text" class="form-control"/>
+      <p class="help-block">Minimum number of idle connections. Default: 8</p>
+    </div>
+
+    <div class="form-group">
+      <label for="connectionTimeout">Timeout (ms)</label>
+      <input wicket:id="connectionTimeout" id="connectionTimeout" type="text" class="form-control"/>
+      <p class="help-block">Connection timeout in milliseconds. Default: 3000</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Cluster Mode</legend>
+
+    <div class="form-group">
+      <label for="clusterMode">
+        <input wicket:id="clusterMode" id="clusterMode" type="checkbox"/>
+        Enable Cluster Mode
+      </label>
+      <p class="help-block">Enable for Valkey/Redis Cluster deployments</p>
+    </div>
+
+    <div class="form-group">
+      <label for="clusterScanInterval">Cluster Scan Interval (ms)</label>
+      <input wicket:id="clusterScanInterval" id="clusterScanInterval" type="text" class="form-control"/>
+      <p class="help-block">Interval for cluster topology scans. Default: 5000</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Sentinel Mode</legend>
+
+    <div class="form-group">
+      <label for="sentinelMode">
+        <input wicket:id="sentinelMode" id="sentinelMode" type="checkbox"/>
+        Enable Sentinel Mode
+      </label>
+      <p class="help-block">Enable for Valkey/Redis Sentinel deployments</p>
+    </div>
+
+    <div class="form-group">
+      <label for="sentinelMasterName">Sentinel Master Name</label>
+      <input wicket:id="sentinelMasterName" id="sentinelMasterName" type="text" class="form-control"/>
+      <p class="help-block">Name of the master in Sentinel configuration (e.g., "mymaster")</p>
+    </div>
+  </fieldset>
+</wicket:panel>
+</body>
+</html>

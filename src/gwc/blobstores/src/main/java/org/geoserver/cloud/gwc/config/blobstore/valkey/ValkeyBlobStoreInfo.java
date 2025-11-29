@@ -150,6 +150,27 @@ public class ValkeyBlobStoreInfo extends BlobStoreInfo {
         this.addresses = addresses;
     }
 
+    /**
+     * Get addresses as a comma-separated string for UI binding.
+     */
+    public String getAddressesAsString() {
+        if (addresses == null || addresses.isEmpty()) {
+            return "";
+        }
+        return String.join(",", addresses);
+    }
+
+    /**
+     * Set addresses from a comma-separated string for UI binding.
+     */
+    public void setAddressesAsString(String addressesStr) {
+        if (addressesStr == null || addressesStr.trim().isEmpty()) {
+            this.addresses = List.of();
+        } else {
+            this.addresses = List.of(addressesStr.split("\\s*,\\s*"));
+        }
+    }
+
     public String getPassword() {
         return password;
     }
