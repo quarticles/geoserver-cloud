@@ -122,6 +122,10 @@ public class ValkeyCacheBlobStore implements BlobStore {
 
     /**
      * Ensures the delegate BlobStore is resolved (for lazy initialization).
+     *
+     * <p>Creates the delegate BlobStore from its configuration via BlobStoreAggregator.
+     * This is needed because CompositeBlobStore doesn't expose a public API to retrieve
+     * live BlobStore instances by ID.
      */
     private BlobStore ensureDelegate() throws StorageException {
         if (delegate == null) {
@@ -131,29 +135,31 @@ public class ValkeyCacheBlobStore implements BlobStore {
                         throw new StorageException("Delegate BlobStore not set and no delegateId provided");
                     }
                     try {
-                        // Get the BlobStoreAggregator to look up the delegate config
+                        // Get the delegate config from BlobStoreAggregator
                         BlobStoreAggregator aggregator = GeoWebCacheExtensions.bean(BlobStoreAggregator.class);
                         if (aggregator == null) {
                             throw new StorageException("BlobStoreAggregator not available in application context");
                         }
 
-                        // Get the delegate blob store info
                         BlobStoreInfo delegateInfo = aggregator.getBlobStore(delegateId);
                         if (delegateInfo == null) {
-                            throw new StorageException("Delegate BlobStore with ID '" + delegateId + "' not found");
+                            throw new StorageException("Delegate BlobStore config '" + delegateId + "' not found");
                         }
 
-                        // Get TileLayerDispatcher and LockProvider to create the instance
+                        // Get dependencies for creating the blobstore instance
                         TileLayerDispatcher tileLayerDispatcher = GeoWebCacheExtensions.bean(TileLayerDispatcher.class);
-                        // Use the GWC clustering lock provider bean by name to avoid multiple LockProvider beans issue
                         LockProvider lockProvider = (LockProvider)
                                 org.geoserver.platform.GeoServerExtensions.bean("gwcClusteringLockProvider");
 
-                        // Create the delegate blob store instance
+                        // Create the delegate BlobStore instance
                         BlobStore resolved = delegateInfo.createInstance(tileLayerDispatcher, lockProvider);
                         if (resolved == null) {
-                            throw new StorageException(
-                                    "Failed to create delegate BlobStore instance for ID '" + delegateId + "'");
+                            throw new StorageException("Failed to create delegate BlobStore '" + delegateId + "'");
+                        }
+
+                        // Don't use ourselves as delegate (circular reference check)
+                        if (resolved == this || resolved instanceof ValkeyCacheBlobStore) {
+                            throw new StorageException("Cannot use ValkeyCacheBlobStore as delegate for itself");
                         }
 
                         this.delegate = resolved;
