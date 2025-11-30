@@ -41,6 +41,7 @@ import org.geowebcache.conveyor.ConveyorTile;
 import org.geowebcache.io.ByteArrayResource;
 import org.geowebcache.io.Resource;
 import org.geowebcache.layer.TileLayer;
+import org.geowebcache.storage.StorageBroker;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -81,6 +82,19 @@ public class WMSIntegrationAutoConfiguration {
         }
 
         /**
+         * Cache warmer that triggers background tile generation when WMS requests miss the cache.
+         * This ensures that browsing the map via WMS warms up the tile cache for future requests.
+         *
+         * @param gwc the GeoWebCache facade
+         * @param storageBroker the storage broker for tile operations
+         */
+        @ConditionalOnBean(StorageBroker.class)
+        @Bean
+        WMSCacheWarmer wmsCacheWarmer(GWC gwc, StorageBroker storageBroker) {
+            return new WMSCacheWarmer(gwc, storageBroker);
+        }
+
+        /**
          * AspectJ around advise on {@link DefaultWebMapService#getMap} to serve the WMS GetMap
          * request through GWC if the parameters match a tile.
          *
@@ -90,12 +104,15 @@ public class WMSIntegrationAutoConfiguration {
          * context before the catalog is initialized, making {@link GetMapKvpRequestReader}
          * constructor throw a NPE.
          *
-         * @param gwc
+         * @param gwc the GeoWebCache facade
+         * @param cacheWarmer optional cache warmer for background tile generation on cache miss
          */
         @ConditionalOnBean(name = {"wmsServiceTarget", "wms_1_1_1_GetCapabilitiesResponse"})
         @Bean
-        ForwardGetMapToGwcAspect gwcGetMapAdvise(GWC gwc) {
-            return new ForwardGetMapToGwcAspect(gwc);
+        ForwardGetMapToGwcAspect gwcGetMapAdvise(
+                GWC gwc,
+                @org.springframework.beans.factory.annotation.Autowired(required = false) WMSCacheWarmer cacheWarmer) {
+            return new ForwardGetMapToGwcAspect(gwc, cacheWarmer);
         }
     }
 
@@ -131,6 +148,7 @@ public class WMSIntegrationAutoConfiguration {
     public static class ForwardGetMapToGwcAspect {
 
         private final GWC gwc;
+        private final WMSCacheWarmer cacheWarmer;
 
         /**
          * Wraps {@link WebMapService#getMap(GetMapRequest)}, called by the {@link Dispatcher}
@@ -146,7 +164,12 @@ public class WMSIntegrationAutoConfiguration {
             final boolean enabled = config.isDirectWMSIntegrationEnabled();
             final boolean tiled = request.isTiled() || !config.isRequireTiledParameter();
             if (!(enabled && tiled)) {
-                return (WebMap) joinPoint.proceed();
+                // Integration not engaged, but still warm cache if enabled
+                WebMap result = (WebMap) joinPoint.proceed();
+                if (enabled && cacheWarmer != null) {
+                    cacheWarmer.warmCacheAsync(request);
+                }
+                return result;
             }
 
             final StringBuilder requestMistmatchTarget = new StringBuilder();
@@ -156,6 +179,10 @@ public class WMSIntegrationAutoConfiguration {
                 WebMap dynamicResult = (WebMap) joinPoint.proceed();
                 dynamicResult.setResponseHeader("geowebcache-cache-result", MISS.toString());
                 dynamicResult.setResponseHeader("geowebcache-miss-reason", requestMistmatchTarget.toString());
+                // Warm cache in background for future requests
+                if (cacheWarmer != null) {
+                    cacheWarmer.warmCacheAsync(request);
+                }
                 return dynamicResult;
             }
             checkState(cachedTile.getTileLayer() != null);
