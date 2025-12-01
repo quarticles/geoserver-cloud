@@ -103,11 +103,45 @@ public abstract class GeoToolsValueMappers {
      */
     @SuppressWarnings("unchecked")
     public <T> Class<T> canonicalNameToClass(String value) {
-        try {
-            return null == value ? null : (Class<T>) ClassUtils.getClass(value);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException(e);
+        if (value == null) {
+            return null;
         }
+        // First try with the original value
+        Class<T> result = tryLoadClass(value);
+        if (result != null) {
+            return result;
+        }
+        // Fallback: attempt to recover from malformed class names where '.' was replaced by '$'
+        // e.g., org$geoserver$catalog$DimensionInfo -> org.geoserver.catalog.DimensionInfo
+        if (value.contains("$")) {
+            String corrected = value.replace('$', '.');
+            result = tryLoadClass(corrected);
+            if (result != null) {
+                log.debug("Loaded class '{}' after correcting malformed name '{}'", corrected, value);
+                return result;
+            }
+        }
+        throw new IllegalArgumentException(new ClassNotFoundException(value));
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> Class<T> tryLoadClass(String className) {
+        // Try multiple classloaders to handle Spring Boot nested JAR classloader issues
+        ClassLoader[] classLoaders = {
+            Thread.currentThread().getContextClassLoader(),
+            GeoToolsValueMappers.class.getClassLoader(),
+            ClassLoader.getSystemClassLoader()
+        };
+        for (ClassLoader cl : classLoaders) {
+            if (cl != null) {
+                try {
+                    return (Class<T>) ClassUtils.getClass(cl, className);
+                } catch (ClassNotFoundException e) {
+                    // Try next classloader
+                }
+            }
+        }
+        return null;
     }
 
     private <F, T> T convert(F value, Function<F, T> nonnNullMapper) {
